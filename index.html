@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seafloor Spreading Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(180deg, #1a3a4a 0%, #0d1f29 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            text-align: center;
+            color: #e8d5b7;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #a0c4d4;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .simulation-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 350px;
+            background: linear-gradient(180deg, #1e5799 0%, #207cca 30%, #2989d8 50%, #1e5799 100%);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Water layer */
+        .water {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(180deg, #1a5276 0%, #2980b9 100%);
+            z-index: 10;
+        }
+
+        .water-label {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 0.8rem;
+            color: #aed6f1;
+            z-index: 11;
+        }
+
+        /* Cross-section view */
+        .cross-section {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* Lithosphere top surface - tilted */
+        .lithosphere-top {
+            position: absolute;
+            top: 5px;
+            left: -100px;
+            right: -100px;
+            height: 60px;
+            background: #5d4e37;
+            transform: perspective(500px) rotateX(50deg);
+            transform-origin: center bottom;
+            z-index: 6;
+        }
+
+        /* Lithosphere front face */
+        .lithosphere-front {
+            position: absolute;
+            top: 35px;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(180deg, #6d5e47 0%, #5d4e37 50%, #4d3e27 100%);
+            z-index: 5;
+        }
+
+        .lithosphere-label {
+            position: absolute;
+            top: 55px;
+            left: 20px;
+            font-size: 0.8rem;
+            color: #d4c4a8;
+            z-index: 15;
+        }
+
+        /* Magnetic stripes container - on top surface */
+        .stripes-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Magnetic stripes container - on front face */
+        .stripes-front-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .stripe {
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .stripe.normal {
+            background: linear-gradient(180deg, #d35400 0%, #e74c3c 50%, #c0392b 100%);
+        }
+
+        .stripe.reversed {
+            background: linear-gradient(180deg, #f5f5f5 0%, #ecf0f1 50%, #d5dbdb 100%);
+        }
+
+        .stripe-front {
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .stripe-front.normal {
+            background: linear-gradient(180deg, #b34700 0%, #c0392b 100%);
+        }
+
+        .stripe-front.reversed {
+            background: linear-gradient(180deg, #d5d5d5 0%, #bdc3c7 100%);
+        }
+
+        /* Ridge label */
+        .ridge-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            color: #e8d5b7;
+            white-space: nowrap;
+            text-align: center;
+            z-index: 15;
+        }
+
+        /* Asthenosphere - base layer */
+        .asthenosphere {
+            position: absolute;
+            top: 85px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #641e16;
+            z-index: 1;
+        }
+
+        .asthenosphere-label {
+            position: absolute;
+            top: 140px;
+            left: 20px;
+            font-size: 0.8rem;
+            color: #f5b7b1;
+            z-index: 10;
+        }
+
+        /* SVG for curved layers and magma */
+        .curved-layers {
+            position: absolute;
+            top: 85px;
+            left: 0;
+            width: 100%;
+            height: 220px;
+            z-index: 2;
+        }
+
+        .magma-label {
+            position: absolute;
+            top: 210px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #2c1810;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        /* Spreading arrows */
+        .spreading-arrows {
+            position: absolute;
+            top: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            gap: 60px;
+            z-index: 20;
+            display: none;
+        }
+
+        .spread-arrow {
+            font-size: 1.5rem;
+            color: #f9e79f;
+            animation: pulse 1.5s infinite;
+        }
+
+        .spread-arrow.left {
+            transform: scaleX(-1);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2ecc71;
+            transform: scale(1.05);
+        }
+
+        .btn-primary.paused {
+            background: #e74c3c;
+        }
+
+        .btn-primary.paused:hover {
+            background: #ec7063;
+        }
+
+        .btn-flip {
+            background: linear-gradient(135deg, #d35400 0%, #e74c3c 50%, #f5f5f5 50%, #ecf0f1 100%);
+            color: #2c3e50;
+            border: 2px solid #2c3e50;
+        }
+
+        .btn-flip:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-reset {
+            background: #7f8c8d;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #95a5a6;
+        }
+
+        /* Polarity indicator */
+        .polarity-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+        }
+
+        /* Compass */
+        .compass-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            z-index: 25;
+        }
+
+        .compass {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #f5f5dc;
+            border: 4px solid #8b7355;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .compass-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 50px;
+            transform: translate(-50%, -50%);
+            transition: transform 0.5s ease;
+        }
+
+        .compass-needle.flipped {
+            transform: translate(-50%, -50%) rotate(180deg);
+        }
+
+        .needle-north {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 25px solid #e74c3c;
+        }
+
+        .needle-south {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 25px solid #ecf0f1;
+        }
+
+        .compass-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: #333;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        .compass-label {
+            font-size: 0.75rem;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .polarity-indicator span {
+            font-size: 0.8rem;
+        }
+
+        .polarity-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid white;
+            transition: background 0.3s;
+        }
+
+        .polarity-dot.normal {
+            background: linear-gradient(135deg, #d35400, #e74c3c);
+        }
+
+        .polarity-dot.reversed {
+            background: linear-gradient(135deg, #f5f5f5, #ecf0f1);
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 8px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Instructions */
+        .instructions {
+            margin-top: 10px;
+            padding: 12px 18px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        .instructions p {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: #a0c4d4;
+        }
+
+        .instructions strong {
+            color: #e8d5b7;
+        }
+
+        .legend-color.normal {
+            background: linear-gradient(180deg, #d35400, #e74c3c);
+        }
+
+        .legend-color.reversed {
+            background: linear-gradient(180deg, #f5f5f5, #ecf0f1);
+        }
+
+        /* Instructions */
+        .instructions {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .instructions h3 {
+            color: #e8d5b7;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .instructions p {
+            color: #a0c4d4;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.4rem;
+            }
+            
+            .simulation-container {
+                height: 400px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Seafloor Spreading Simulation</h1>
+    <p class="subtitle">Observe how new ocean crust forms and records Earth's magnetic field</p>
+
+    <div class="simulation-container">
+        <!-- Compass in top right -->
+        <div class="compass-container">
+            <div class="compass">
+                <div class="compass-needle" id="compassNeedle">
+                    <div class="needle-north"></div>
+                    <div class="needle-south"></div>
+                </div>
+                <div class="compass-center"></div>
+            </div>
+            <span class="compass-label">Compass</span>
+        </div>
+
+        <!-- Water layer -->
+        <div class="water">
+            <span class="water-label">Ocean Water</span>
+        </div>
+
+        <!-- Cross-section -->
+        <div class="cross-section">
+            <!-- Ridge label -->
+            <span class="ridge-label">Mid-Ocean Ridge</span>
+
+            <!-- Lithosphere top surface (tilted) -->
+            <div class="lithosphere-top">
+                <div class="stripes-container" id="stripesContainer"></div>
+            </div>
+
+            <!-- Lithosphere front face -->
+            <div class="lithosphere-front">
+                <div class="stripes-front-container" id="stripesFrontContainer"></div>
+            </div>
+            
+            <span class="lithosphere-label">Lithosphere</span>
+
+            <!-- Spreading arrows -->
+            <div class="spreading-arrows" id="spreadingArrows">
+                <span class="spread-arrow left">➔</span>
+                <span class="spread-arrow">➔</span>
+            </div>
+
+            <!-- Asthenosphere base -->
+            <div class="asthenosphere"></div>
+            
+            <span class="asthenosphere-label">Asthenosphere</span>
+
+            <!-- SVG for curved layers and magma -->
+            <svg class="curved-layers" viewBox="0 0 900 300" preserveAspectRatio="none">
+                <!-- Curved asthenosphere layers -->
+                <path d="M0,0 Q450,-40 900,0 L900,80 Q450,40 0,80 Z" fill="#a93226"/>
+                <path d="M0,80 Q450,40 900,80 L900,160 Q450,120 0,160 Z" fill="#922b21"/>
+                <path d="M0,160 Q450,120 900,160 L900,300 Q450,260 0,300 Z" fill="#7b241c"/>
+                
+                <!-- Magma chamber - curved dome -->
+                <defs>
+                    <linearGradient id="magmaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#c0392b"/>
+                        <stop offset="30%" style="stop-color:#e74c3c"/>
+                        <stop offset="60%" style="stop-color:#f39c12"/>
+                        <stop offset="100%" style="stop-color:#f5b041"/>
+                    </linearGradient>
+                </defs>
+                <path d="M450,-5 
+                         Q400,30 380,80
+                         Q350,150 330,300
+                         L570,300
+                         Q550,150 520,80
+                         Q500,30 450,-5
+                         Z" 
+                      fill="url(#magmaGrad)"/>
+            </svg>
+            
+            <span class="magma-label">Magma</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-primary" id="playPauseBtn">▶ Start Spreading</button>
+        <button class="btn-flip" id="flipBtn">🧲 Reverse Magnetic Field</button>
+        <button class="btn-reset" id="resetBtn">↺ Reset</button>
+        
+        <div class="polarity-indicator">
+            <span>Current Field:</span>
+            <div class="polarity-dot normal" id="polarityDot"></div>
+            <span id="polarityText">Normal</span>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color normal"></div>
+            <span>Normal Polarity (compass points north)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color reversed"></div>
+            <span>Reversed Polarity (compass points south)</span>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <p><strong>🔬 Your Challenge:</strong> Press <strong>Start Spreading</strong> to create new ocean crust. Press <strong>Reverse Magnetic Field</strong> to flip Earth's polarity and watch what pattern forms. What do you notice about the stripes on each side of the ridge?</p>
+    </div>
+
+    <script>
+        // Simulation state
+        let isRunning = false;
+        let isNormalPolarity = true;
+        let stripes = [];
+        let animationId = null;
+        let lastTime = 0;
+        const SPREAD_RATE = 15;
+        const MIN_STRIPE_WIDTH = 4;
+
+        // DOM elements
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const flipBtn = document.getElementById('flipBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const stripesContainer = document.getElementById('stripesContainer');
+        const stripesFrontContainer = document.getElementById('stripesFrontContainer');
+        const spreadingArrows = document.getElementById('spreadingArrows');
+        const polarityDot = document.getElementById('polarityDot');
+        const polarityText = document.getElementById('polarityText');
+        const compassNeedle = document.getElementById('compassNeedle');
+
+        // Initialize
+        function init() {
+            stripes = [];
+            renderStripes();
+        }
+
+        // Toggle simulation
+        function toggleSimulation() {
+            isRunning = !isRunning;
+
+            if (isRunning) {
+                playPauseBtn.textContent = '⏸ Pause';
+                playPauseBtn.classList.add('paused');
+                spreadingArrows.style.display = 'flex';
+                lastTime = performance.now();
+                animate();
+            } else {
+                playPauseBtn.textContent = '▶ Start Spreading';
+                playPauseBtn.classList.remove('paused');
+                spreadingArrows.style.display = 'none';
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+            }
+        }
+
+        // Animation loop
+        function animate(currentTime) {
+            if (!isRunning) return;
+
+            // Handle first frame
+            if (currentTime === undefined) {
+                currentTime = performance.now();
+            }
+            
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            const currentPolarity = isNormalPolarity ? 'normal' : 'reversed';
+            
+            // Always create first stripe or when polarity changes
+            if (stripes.length === 0 || stripes[0].polarity !== currentPolarity) {
+                stripes.unshift({
+                    polarity: currentPolarity,
+                    width: 0
+                });
+            }
+
+            // Grow the current stripe
+            stripes[0].width += SPREAD_RATE * deltaTime;
+            renderStripes();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Render stripes on both top and front
+        function renderStripes() {
+            stripesContainer.innerHTML = '';
+            stripesFrontContainer.innerHTML = '';
+
+            // Top surface
+            const leftSide = document.createElement('div');
+            leftSide.style.cssText = 'display: flex; flex-direction: row-reverse; height: 100%;';
+            
+            const rightSide = document.createElement('div');
+            rightSide.style.cssText = 'display: flex; flex-direction: row; height: 100%;';
+
+            // Front face
+            const leftFront = document.createElement('div');
+            leftFront.style.cssText = 'display: flex; flex-direction: row-reverse; height: 100%;';
+            
+            const rightFront = document.createElement('div');
+            rightFront.style.cssText = 'display: flex; flex-direction: row; height: 100%;';
+
+            stripes.forEach(function(stripe) {
+                // Top stripes
+                const leftStripe = document.createElement('div');
+                leftStripe.className = 'stripe ' + stripe.polarity;
+                leftStripe.style.width = stripe.width + 'px';
+                leftSide.appendChild(leftStripe);
+
+                const rightStripe = document.createElement('div');
+                rightStripe.className = 'stripe ' + stripe.polarity;
+                rightStripe.style.width = stripe.width + 'px';
+                rightSide.appendChild(rightStripe);
+
+                // Front stripes
+                const leftStripeFront = document.createElement('div');
+                leftStripeFront.className = 'stripe-front ' + stripe.polarity;
+                leftStripeFront.style.width = stripe.width + 'px';
+                leftFront.appendChild(leftStripeFront);
+
+                const rightStripeFront = document.createElement('div');
+                rightStripeFront.className = 'stripe-front ' + stripe.polarity;
+                rightStripeFront.style.width = stripe.width + 'px';
+                rightFront.appendChild(rightStripeFront);
+            });
+
+            stripesContainer.appendChild(leftSide);
+            stripesContainer.appendChild(rightSide);
+
+            stripesFrontContainer.appendChild(leftFront);
+            stripesFrontContainer.appendChild(rightFront);
+        }
+
+        // Flip polarity
+        function flipPolarity() {
+            isNormalPolarity = !isNormalPolarity;
+
+            if (isNormalPolarity) {
+                polarityDot.className = 'polarity-dot normal';
+                polarityText.textContent = 'Normal';
+                compassNeedle.classList.remove('flipped');
+            } else {
+                polarityDot.className = 'polarity-dot reversed';
+                polarityText.textContent = 'Reversed';
+                compassNeedle.classList.add('flipped');
+            }
+
+            if (!isRunning && stripes.length > 0) {
+                const currentPolarity = isNormalPolarity ? 'normal' : 'reversed';
+                if (stripes[0].polarity !== currentPolarity) {
+                    stripes.unshift({
+                        polarity: currentPolarity,
+                        width: MIN_STRIPE_WIDTH
+                    });
+                    renderStripes();
+                }
+            }
+        }
+
+        // Reset simulation
+        function resetSimulation() {
+            isRunning = false;
+            isNormalPolarity = true;
+            
+            playPauseBtn.textContent = '▶ Start Spreading';
+            playPauseBtn.classList.remove('paused');
+            polarityDot.className = 'polarity-dot normal';
+            polarityText.textContent = 'Normal';
+            compassNeedle.classList.remove('flipped');
+            spreadingArrows.style.display = 'none';
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            init();
+        }
+
+        // Event listeners
+        playPauseBtn.addEventListener('click', toggleSimulation);
+        flipBtn.addEventListener('click', flipPolarity);
+        resetBtn.addEventListener('click', resetSimulation);
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
